@@ -166,7 +166,7 @@
 
         let ledArray 
         const ledStart = new XMLHttpRequest()
-        ledStart.open("GET", '192.168.84.211/zwroc_diody.php', false)
+        ledStart.open("GET", '192.168.84.221/zwroc_diody.php', false)
         ledStart.send(null)
         ledArray = ledStart.responseText
         let json = JSON.parse(ledArray)
@@ -203,7 +203,7 @@
                     let muka = document.querySelector('[name="led'+y+x+'"]')
                     if(muka.checked){
                     const xhttp = new XMLHttpRequest()
-                    xhttp.open("GET", '192.168.84.211/ustaw_diode.php?x='+x+'&y='+y+'&r='+r+'&g='+g+'&b='+b, true)
+                    xhttp.open("GET", '192.168.84.221/ustaw_diode.php?x='+x+'&y='+y+'&r='+r+'&g='+g+'&b='+b, true)
                     xhttp.send()
                     }
                 }
@@ -219,7 +219,7 @@
                 }
             }
             const ledXhttp = new XMLHttpRequest()
-            ledXhttp.open("GET", '192.168.84.211/zwroc_diody.php', false)
+            ledXhttp.open("GET", '192.168.84.221/zwroc_diody.php', false)
             ledXhttp.send(null)
             ledArray = ledXhttp.responseText
             json = JSON.parse(ledArray)
@@ -229,7 +229,7 @@
 
         document.querySelector('[name="reset"]').addEventListener("click", function(){
             const xhttp = new XMLHttpRequest()
-            xhttp.open("GET", '192.168.84.211/czysc_diody.php', true)
+            xhttp.open("GET", '192.168.84.221/czysc_diody.php', true)
             xhttp.send()
             for(let x = 0; x <=7; x++){
                 for(let y = 0; y <=7; y++){
@@ -242,7 +242,7 @@
                 }
             }
             const ledXhttp = new XMLHttpRequest()
-            ledXhttp.open("GET", '192.168.84.211/zwroc_diody.php', false)
+            ledXhttp.open("GET", '192.168.84.221/zwroc_diody.php', false)
             ledXhttp.send(null)
             ledArray = ledXhttp.responseText
             json = JSON.parse(ledArray)
@@ -265,7 +265,7 @@
 	let myChary = new Chart(document.querySelector('#myChart'), chart)
 
 	setInterval(function(){
-        sensorData.open("GET", '192.168.84.211/temp_press_hum.php', false)
+        sensorData.open("GET", '192.168.84.221/temp_press_hum.php', false)
         sensorData.send(null)
         sensorArray = sensorData.responseText
         sensorJson = JSON.parse(sensorArray)
@@ -273,7 +273,7 @@
         pressure = sensorJson.pressure
         humidity = sensorJson.humidity
 
-        angleData.open("GET", '192.168.84.211/rpy.php', false)
+        angleData.open("GET", '192.168.84.221/rpy.php', false)
         angleData.send(null)
         angleArray = angleData.responseText
         angleJson = JSON.parse(angleArray)
