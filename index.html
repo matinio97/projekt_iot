@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEJ SENSEHAT</title>
+    <title>SENSEHAT</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
     <style>
         body {
@@ -40,7 +40,6 @@
             padding: 20px;
             margin: 10px auto;
         }
-
         #choosenColor {
             margin: 10px auto;
             width: 100px;
@@ -49,13 +48,11 @@
             border: 1px solid black;
             border-radius: 10px;
         }
-
         #setLed, #viewLed{
             float: left;
             width: 40%;
             margin: auto;
         }
-
         #viewLed {
             display: grid;
             width: min-content;
@@ -63,7 +60,6 @@
             margin-left: 5%;
             grid-template-columns: 0.1fr 0.1fr 0.1fr 0.1fr 0.1fr 0.1fr 0.1fr 0.1fr;
         }
-
         #viewLed div{
             width: 30px;
             height: 30px;
@@ -84,40 +80,40 @@
         #setLed {
             margin: 0 auto;
         }
+        #myChart {
+            width: 100% !important;
+        }
+
     </style>
 </head>
 <body>
-    
-    <input type="text" name="server_ip" id="server_ip">
-    <label for="server_ip">Wprowadź ip serwera</label>
-    <button id="save_ip">Zapisz</button><br>
     0.1<input type="range" min="0.1" max="1" step="0.1" value="1" name="sample_time" id="sample_time">1
     <label for="sample_time">Czas próbkowania</label><br>
         <section id="infoPanel">
         <fieldset>
             <legend><h4>Informacje z serwera</h4></legend>
-            <ul>
-                <li>Temperatura:</li>
-            </ul>
             <div class="chart">
                 <canvas id="myChart"></canvas>
             </div>
-            <ul>
-                <li >Ciśnienie: <span id="press"></span></li>
-                <li >Wilgotność: <span id="hum"></span></li>
-                <li >Kąt roll: <span id="roll"></span></li>
-                <li >Kąt Pitch: <span id="pitch"></span></li>
-                <li >Kąt Yaw: <span id="yaw"></span></li>
+            <ul id="dane_pomiarowe">
+                <li >Temperatura [&#176;C]: <span id="temp"></span></li>
+                <li >Ciśnienie [mBar]: <span id="press"></span></li>
+                <li >Wilgotność [%]: <span id="hum"></span></li>
+                <li >Kąt Yaw [&#176;]: <span id="yaw"></span></li>
+                <li >Kąt Pitch [&#176;]: <span id="pitch"></span></li>
+                <li >Kąt Roll [&#176;]: <span id="roll"></span></li>
+                <li >Środek joystick [-]: <span id="mjoy"></span></li>
+                <li >X joystick [-]: <span id="xjoy"></span></li>
+                <li >Y joystick [-]: <span id="yjoy"></span></li>
             </ul>
-
+            <div id="dane_pomiarowe"></div>
         </fieldset>
     </section>
     <section id="setLedPanel">
         <fieldset>
             <legend><h4>Konfiguracja diod LED</h4></legend>
             <div id="setLed">
-                <div id="led_8x8">    
-                </div>
+                <div id="led_8x8"></div>
                 <div id="color">
                     <div>
                         <div class="color">R<input type="range" min="0" max="255" value="128" name="red"></div>
@@ -132,21 +128,30 @@
                     <button type="submit" name="reset">Czyść diody</button>
                 </div>
             </div>
-            <div id="viewLed">
-                
-            </div>
+            <div id="viewLed"></div>
         </fieldset>
-
     </section>
 
     <script>
-
     document.addEventListener("DOMContentLoaded", function() {
+
+        let sampleTime
+
+        document.querySelector('#dane_pomiarowe').style.display = "none"
+        document.querySelector('#dane_pomiarowe>li').style.display = "none"
+
+        function showItemList(value, selector){
+            if(value != "" && value != null) {
+                document.querySelector(selector).innerHTML = value
+                document.querySelector(selector).style.display = "inline-block"
+            }
+            else document.querySelector(selector).style.display = "none"
+        }
 
         let selector = document.querySelector('#led_8x8') 
         for(let x = 0; x <= 7; x++) {
             for(let y = 0; y <= 7; y++) {
-                let child = document.createElement("input");
+                let child = document.createElement("input")
                 child.type = "checkbox"
                 child.setAttribute("name", "led"+x+y)
                 child.setAttribute("x", x)
@@ -181,90 +186,73 @@
             })
         })
 
-        let ipAddress
-        let sampleTime
-        let isDataEntered = false
+        let ledArray 
+        const ledStart = new XMLHttpRequest()
+        ledStart.open("GET", '/zwroc_diody.php', false)
+        ledStart.send(null)
+        ledArray = ledStart.responseText
+        let json = JSON.parse(ledArray)
+        setViewColor(json)
 
-        document.querySelector("#save_ip").addEventListener("click", function(){
-            ipAddress = document.querySelector("#server_ip").value
-            isDataEntered = true
-            let ledArray 
-            const ledStart = new XMLHttpRequest()
-            ledStart.open("GET", 'http://'+ipAddress+'/zwroc_diody.php', false)
-            ledStart.send(null)
-            ledArray = ledStart.responseText
-            let json = JSON.parse(ledArray)
+        document.querySelector('[name="submit"]').addEventListener("click", function(){
+            r = document.querySelector('[name="red"]').value
+            g = document.querySelector('[name="green"]').value
+            b = document.querySelector('[name="blue"]').value
+            for(let x = 0; x <=7; x++){
+                for(let y = 0; y <=7; y++){
+                    let muka = document.querySelector('[name="led'+y+x+'"]')
+                    if(muka.checked){
+                    const xhttp = new XMLHttpRequest()
+                    xhttp.open("GET", '/ustaw_diode.php?x='+x+'&y='+y+'&r='+r+'&g='+g+'&b='+b, true)
+                    xhttp.send()
+                    }
+                }
+            }
+            for(let x = 0; x <=7; x++){
+                for(let y = 0; y <=7; y++){
+                    let muka = document.querySelector('[name="led'+y+x+'"]')
+                    muka.checked = false
+                    choosenColor.style.backgroundColor = "rgb(128,128,127)"
+                    document.querySelector('[name="red"]').value = 128
+                    document.querySelector('[name="green"]').value = 128
+                    document.querySelector('[name="blue"]').value = 128
+                }
+            }
+            const ledXhttp = new XMLHttpRequest()
+            ledXhttp.open("GET", '/zwroc_diody.php', false)
+            ledXhttp.send(null)
+            ledArray = ledXhttp.responseText
+            json = JSON.parse(ledArray)
             setViewColor(json)
         })
 
-        document.querySelector('[name="submit"]').addEventListener("click", function(){
-            if(isDataEntered && ipAddress != null) {
-                r = document.querySelector('[name="red"]').value
-                g = document.querySelector('[name="green"]').value
-                b = document.querySelector('[name="blue"]').value
-                for(let x = 0; x <=7; x++){
-                    for(let y = 0; y <=7; y++){
-                        let muka = document.querySelector('[name="led'+y+x+'"]')
-                        if(muka.checked){
-                        const xhttp = new XMLHttpRequest()
-                        xhttp.open("GET", 'http://'+ipAddress+'/ustaw_diode.php?x='+x+'&y='+y+'&r='+r+'&g='+g+'&b='+b, true)
-                        xhttp.send()
-                        }
-                    }
-                }
-                for(let x = 0; x <=7; x++){
-                    for(let y = 0; y <=7; y++){
-                        let muka = document.querySelector('[name="led'+y+x+'"]')
-                        muka.checked = false
-                        choosenColor.style.backgroundColor = "rgb(128,128,127)"
-                        document.querySelector('[name="red"]').value = 128
-                        document.querySelector('[name="green"]').value = 128
-                        document.querySelector('[name="blue"]').value = 128
-                    }
-                }
-                const ledXhttp = new XMLHttpRequest()
-                ledXhttp.open("GET", 'http://'+ipAddress+'/zwroc_diody.php', false)
-                ledXhttp.send(null)
-                ledArray = ledXhttp.responseText
-                json = JSON.parse(ledArray)
-                setViewColor(json)
-            } else {
-                alert("Nie podano adresu ip serwera")
-            }
-            
-
-        })
-
         document.querySelector('[name="reset"]').addEventListener("click", function(){
-            if(isDataEntered && ipAddress != null) {
-                const xhttp = new XMLHttpRequest()
-                xhttp.open("GET", 'http://'+ipAddress+'/czysc_diody.php', true)
-                xhttp.send()
-                for(let x = 0; x <=7; x++){
-                    for(let y = 0; y <=7; y++){
-                        let muka = document.querySelector('[name="led'+y+x+'"]')
-                        muka.checked = false
-                        choosenColor.style.backgroundColor = "rgb(128,128,127)"
-                        document.querySelector('[name="red"]').value = 128
-                        document.querySelector('[name="green"]').value = 128
-                        document.querySelector('[name="blue"]').value = 128
-                    }
+            const xhttp = new XMLHttpRequest()
+            xhttp.open("GET", '/czysc_diody.php', true)
+            xhttp.send()
+            for(let x = 0; x <=7; x++){
+                for(let y = 0; y <=7; y++){
+                    let muka = document.querySelector('[name="led'+y+x+'"]')
+                    muka.checked = false
+                    choosenColor.style.backgroundColor = "rgb(128,128,127)"
+                    document.querySelector('[name="red"]').value = 128
+                    document.querySelector('[name="green"]').value = 128
+                    document.querySelector('[name="blue"]').value = 128
                 }
-                const ledXhttp = new XMLHttpRequest()
-                ledXhttp.open("GET", 'http://'+ipAddress+'/zwroc_diody.php', false)
-                ledXhttp.send(null)
-                ledArray = ledXhttp.responseText
-                json = JSON.parse(ledArray)
-                setViewColor(json)
-            } else {
-                alert("Nie podano adresu ip serwera")
             }
+            const ledXhttp = new XMLHttpRequest()
+            ledXhttp.open("GET", '/zwroc_diody.php', false)
+            ledXhttp.send(null)
+            ledArray = ledXhttp.responseText
+            json = JSON.parse(ledArray)
+            setViewColor(json)
         })
 
         let temp, pressure, humidity
         let roll, pitch, yaw
         let sensorData = new XMLHttpRequest()
         let angleData = new XMLHttpRequest()
+        let joystickData = new XMLHttpRequest()
         let time
         let actTime
         let h, m, s
@@ -274,53 +262,72 @@
         let myChary = new Chart(document.querySelector('#myChart'), chart)
         sampleTime = document.querySelector("#sample_time").value * 1000
         let interval 
+
         getDataFromSensors()
         function getDataFromSensors() {
-            if(isDataEntered && ipAddress != null) {
-                sampleTime = document.querySelector("#sample_time").value * 1000
-                sensorData.open("GET", 'http://'+ipAddress+'/temp_press_hum.php', false)
-                sensorData.send(null)
-                sensorArray = sensorData.responseText
-                sensorJson = JSON.parse(sensorArray)
-                temperature = sensorJson.temperature
-                pressure = sensorJson.pressure
-                humidity = sensorJson.humidity
 
-                angleData.open("GET", 'http://'+ipAddress+'/rpy.php', false)
-                angleData.send(null)
-                angleArray = angleData.responseText
-                angleJson = JSON.parse(angleArray)
-                roll = angleJson.roll
-                pitch = angleJson.pitch
-                yaw = angleJson.yaw
+            document.querySelector('#dane_pomiarowe').style.display = "block"
 
-                time = new Date()
-                h = time.getHours() <=9 ? h = "0" + time.getHours() : h = time.getHours()
-                m = time.getMinutes() <=9 ? m = "0" + time.getMinutes() : m = time.getMinutes()
-                s = time.getSeconds() <=9 ? s = "0" + time.getSeconds() : s = time.getSeconds()
-                actTime = h + ":" + m + ":" + s
-                addData(myChary, actTime, temperature)
+            sampleTime = document.querySelector("#sample_time").value * 1000
+            sensorData.open("GET", '/temp_press_hum.php', false)
+            sensorData.send(null)
+            sensorArray = sensorData.responseText
+            sensorJson = JSON.parse(sensorArray)
+            temperature = sensorJson.temperature
+            pressure = sensorJson.pressure
+            humidity = sensorJson.humidity
 
-                document.querySelector("#press").innerHTML = pressure.toFixed(4) + " [hPa]"
-                document.querySelector("#hum").innerHTML = humidity.toFixed(4) + " [%]"
-                document.querySelector("#roll").innerHTML = roll.toFixed(4) + " [\xB0]"
-                document.querySelector("#pitch").innerHTML = pitch.toFixed(4) + " [\xB0]"
-                document.querySelector("#yaw").innerHTML = yaw.toFixed(4) + " [\xB0]"
-            }
+            joystickData.open("GET", '/joystick.php', false)
+            joystickData.send(null)
+            joystickrArray = joystickData.responseText
+            joystickJson = JSON.parse(joystickrArray)
+            midJoy = joystickJson.srodek
+            xJoy = joystickJson.x
+            yJoy = joystickJson.y
+            if(midJoy == "") midJoy = "0"
+            if(xJoy == "") xJoy = "0"
+            if(yJoy == "") yJoy = "0"
+            angleData.open("GET", '/rpy.php', false)
+            angleData.send(null)
+            angleArray = angleData.responseText
+            angleJson = JSON.parse(angleArray)
+            roll = angleJson.roll
+            pitch = angleJson.pitch
+            yaw = angleJson.yaw
+
+            time = new Date()
+            h = time.getHours() <=9 ? h = "0" + time.getHours() : h = time.getHours()
+            m = time.getMinutes() <=9 ? m = "0" + time.getMinutes() : m = time.getMinutes()
+            s = time.getSeconds() <=9 ? s = "0" + time.getSeconds() : s = time.getSeconds()
+            actTime = h + ":" + m + ":" + s
+            addData(myChary, actTime, temperature)
+            ms = time.getMilliseconds()
+            console.log(actTime+":"+ms)
+
+            showItemList(temperature.toFixed(4), "#temp")
+            showItemList(pressure.toFixed(4), "#press")
+            showItemList(humidity.toFixed(4), "#hum")
+            showItemList(roll.toFixed(4), "#roll")
+            showItemList(pitch.toFixed(4), "#pitch")
+            showItemList(yaw.toFixed(4), "#yaw")
+            showItemList(midJoy, "#mjoy")
+            showItemList(xJoy, "#xjoy")
+            showItemList(yJoy, "#yjoy")
+
             clearInterval(interval)
             interval = setInterval(getDataFromSensors, sampleTime)
         }
     })
 
     function setViewColor(array) {
-            array.forEach(function(element,index){
-                if(element.r == 0 & element.g == 0 && element.b == 0) {
-                    document.querySelector('[data-number="'+index+'"').style.backgroundColor = "rgb(255,255,255)"
-                } else {
-                    document.querySelector('[data-number="'+index+'"').style.backgroundColor = "rgb("+element.r+","+element.g+","+element.b+")"
-                }
-            })
-        }
+        array.forEach(function(element,index){
+            if(element.r == 0 & element.g == 0 && element.b == 0) {
+                document.querySelector('[data-number="'+index+'"').style.backgroundColor = "rgb(255,255,255)"
+            } else {
+                document.querySelector('[data-number="'+index+'"').style.backgroundColor = "rgb("+element.r+","+element.g+","+element.b+")"
+            }
+        })
+    }
 
 	function addData(chart, label, data) {
 		chart.data.labels.push(label)
@@ -402,7 +409,6 @@
 
 		return config
 	}
-
     </script>
 
 </body>
